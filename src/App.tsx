@@ -5,6 +5,7 @@ import Navbar from "./components/Navbar";
 
 import Home from "./pages/Home";
 import Experience from "./pages/Experience/Experience";
+import InvestmentComparison from "./pages/InvestmentComparison/InvestmentComparison";
 
 export default function App() {
   const location = useLocation();
@@ -25,6 +26,10 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/experience" element={<Experience />} />
+          <Route
+            path="/investment-comparison"
+            element={<InvestmentComparison />}
+          />
         </Routes>
 
         <footer className="py-12 text-center text-sm text-[#806D76]">
