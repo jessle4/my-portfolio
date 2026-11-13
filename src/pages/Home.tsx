@@ -35,7 +35,7 @@ export default function Home() {
         </motion.h1>
 
         <p className="mt-10 mb-12 text-lg text-[#6B7F70]">
-          always looking to build
+          always looking to grow and to build
         </p>
 
         <MagneticButton href="#projects">Explore my work ↗</MagneticButton>

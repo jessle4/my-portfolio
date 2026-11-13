@@ -40,6 +40,17 @@ export default function Navbar() {
         >
           Experience
         </NavLink>
+
+        <NavLink
+          to="/investment-comparison"
+          className="transition-colors"
+          style={({ isActive }) => ({
+            color: isActive ? accent : "#806D76",
+            fontWeight: isActive ? 600 : 400,
+          })}
+        >
+          Investing
+        </NavLink>
       </div>
     </nav>
   );
