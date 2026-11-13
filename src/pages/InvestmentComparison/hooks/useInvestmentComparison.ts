@@ -11,8 +11,73 @@ export function useInvestmentComparison() {
   const [monthlyBudget, setMonthlyBudget] = useState(1_500);
   const [firstMonthlyAllocation, setFirstMonthlyAllocation] =
     useState<MonthlyAllocation>("offset");
-  const [stocks, setStocks] = useState(INITIAL_STOCKS);
-  const [property, setProperty] = useState(INITIAL_PROPERTY);
+  const [stockAssumptions, setStocks] = useState<StockInvestmentInput>(INITIAL_STOCKS);
+  const [propertyAssumptions, setProperty] = useState<CombinedPropertyInput>(INITIAL_PROPERTY);
+
+  // null means "automatic"; a number (including zero) is a manual override.
+  const [stockInitialOverride, setStockInitialOverride] = useState<number | null>(null);
+  const [stockMonthlyOverride, setStockMonthlyOverride] = useState<number | null>(null);
+  const [depositOverride, setDepositOverride] = useState<number | null>(null);
+  const [offsetInitialOverride, setOffsetInitialOverride] = useState<number | null>(null);
+  const [sharesInitialOverride, setSharesInitialOverride] = useState<number | null>(null);
+  const [offsetMonthlyOverride, setOffsetMonthlyOverride] = useState<number | null>(null);
+  const [sharesMonthlyOverride, setSharesMonthlyOverride] = useState<number | null>(null);
+
+  const stocks = useMemo<StockInvestmentInput>(() => ({
+    ...stockAssumptions,
+    initialInvestment: stockInitialOverride ?? startingCapital,
+    monthlyContribution: stockMonthlyOverride ?? monthlyBudget,
+  }), [stockAssumptions, stockInitialOverride, stockMonthlyOverride, startingCapital, monthlyBudget]);
+
+  const property = useMemo<CombinedPropertyInput>(() => {
+    // Allocate initial cash in priority order: purchase costs, deposit, offset, shares.
+    // Manual overrides are never silently modified; the engine validates overspending.
+    const afterCosts = Math.max(0, startingCapital - propertyAssumptions.upfrontPurchaseCosts);
+    const deposit = depositOverride ?? Math.min(propertyAssumptions.deposit, afterCosts);
+    const afterDeposit = Math.max(0, afterCosts - deposit);
+    const initialOffset = offsetInitialOverride ?? Math.min(INITIAL_PROPERTY.offset.initialBalance, afterDeposit);
+    const afterOffset = Math.max(0, afterDeposit - initialOffset);
+    const initialShares = sharesInitialOverride ?? Math.min(INITIAL_PROPERTY.propertyShares.initialInvestment, afterOffset);
+    return {
+      ...propertyAssumptions,
+      deposit,
+      projectionYears: stocks.years,
+      offset: {
+        ...propertyAssumptions.offset,
+        initialBalance: initialOffset,
+        monthlyDeposit: offsetMonthlyOverride ?? Math.min(INITIAL_PROPERTY.offset.monthlyDeposit, monthlyBudget),
+      },
+      propertyShares: {
+        ...propertyAssumptions.propertyShares,
+        initialInvestment: initialShares,
+        monthlyContribution: sharesMonthlyOverride ?? Math.min(INITIAL_PROPERTY.propertyShares.monthlyContribution, monthlyBudget),
+        inflationRate: stocks.inflationRate,
+      },
+    };
+  }, [propertyAssumptions, startingCapital, monthlyBudget, stocks.years, stocks.inflationRate,
+      depositOverride, offsetInitialOverride, sharesInitialOverride, offsetMonthlyOverride, sharesMonthlyOverride]);
+
+  const automaticFields = {
+    stockInitial: stockInitialOverride === null,
+    stockMonthly: stockMonthlyOverride === null,
+    deposit: depositOverride === null,
+    offsetInitial: offsetInitialOverride === null,
+    sharesInitial: sharesInitialOverride === null,
+    offsetMonthly: offsetMonthlyOverride === null,
+    sharesMonthly: sharesMonthlyOverride === null,
+  };
+
+  function restoreAutomatic(field: keyof typeof automaticFields) {
+    switch (field) {
+      case "stockInitial": setStockInitialOverride(null); break;
+      case "stockMonthly": setStockMonthlyOverride(null); break;
+      case "deposit": setDepositOverride(null); break;
+      case "offsetInitial": setOffsetInitialOverride(null); break;
+      case "sharesInitial": setSharesInitialOverride(null); break;
+      case "offsetMonthly": setOffsetMonthlyOverride(null); break;
+      case "sharesMonthly": setSharesMonthlyOverride(null); break;
+    }
+  }
 
   const fairInput = useMemo<FairComparisonInput>(
     () => ({
@@ -69,14 +134,24 @@ export function useInvestmentComparison() {
     key: K,
     value: StockInvestmentInput[K],
   ) {
-    setStocks((current) => ({ ...current, [key]: value }));
+    if (key === "initialInvestment") {
+      setStockInitialOverride(value as number);
+    } else if (key === "monthlyContribution") {
+      setStockMonthlyOverride(value as number);
+    } else {
+      setStocks((current) => ({ ...current, [key]: value }));
+    }
   }
 
   function updateProperty<K extends keyof CombinedPropertyInput>(
     key: K,
     value: CombinedPropertyInput[K],
   ) {
-    setProperty((current) => ({ ...current, [key]: value }));
+    if (key === "deposit") {
+      setDepositOverride(value as number);
+    } else {
+      setProperty((current) => ({ ...current, [key]: value }));
+    }
   }
 
   function updateStockRate(
@@ -122,7 +197,9 @@ export function useInvestmentComparison() {
     key: keyof CombinedPropertyInput["offset"],
     value: number,
   ) {
-    setProperty((current) => ({
+    if (key === "initialBalance") setOffsetInitialOverride(value);
+    else if (key === "monthlyDeposit") setOffsetMonthlyOverride(value);
+    else setProperty((current) => ({
       ...current,
       offset: { ...current.offset, [key]: value },
     }));
@@ -132,10 +209,8 @@ export function useInvestmentComparison() {
     key: "initialInvestment" | "monthlyContribution",
     value: number,
   ) {
-    setProperty((current) => ({
-      ...current,
-      propertyShares: { ...current.propertyShares, [key]: value },
-    }));
+    if (key === "initialInvestment") setSharesInitialOverride(value);
+    else setSharesMonthlyOverride(value);
   }
 
   function updateProjectionYears(value: number) {
@@ -149,6 +224,13 @@ export function useInvestmentComparison() {
     setFirstMonthlyAllocation("offset");
     setStocks(INITIAL_STOCKS);
     setProperty(INITIAL_PROPERTY);
+    setStockInitialOverride(null);
+    setStockMonthlyOverride(null);
+    setDepositOverride(null);
+    setOffsetInitialOverride(null);
+    setSharesInitialOverride(null);
+    setOffsetMonthlyOverride(null);
+    setSharesMonthlyOverride(null);
   }
 
   const chartYears = years.map((year) => year.year);
@@ -180,6 +262,7 @@ export function useInvestmentComparison() {
     firstMonthlyAllocation, setFirstMonthlyAllocation, stocks, property, calculation,
     years, finalYear, fairFeasible, propertyYear, propertyMonth,
     mortgagePayoffMonth, latestOutOfPocket, propertyInitialAllocation, chartYears, propertySeries,
+    automaticFields, restoreAutomatic,
     updateStock, updateProperty, updateStockRate, updatePropertyShareRate, updateInflation,
     updateExpense, updateOffset, updatePropertyShares, updateProjectionYears, resetInputs,
   };

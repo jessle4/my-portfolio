@@ -1,5 +1,4 @@
 import { CURRENCY, formatCurrency } from "../utils/formatters";
-import { exportAnnualCsv } from "../utils/exportCsv";
 import SummaryCard from "../components/SummaryCard";
 import ChartPanel from "../components/ChartPanel";
 import LineChart from "../components/LineChart";
@@ -37,15 +36,6 @@ export default function ResultsSection({
             Projection results
           </h2>
         </div>
-        {years.length > 0 && (
-          <button
-            type="button"
-            onClick={() => exportAnnualCsv(years)}
-            className="rounded-full border border-[#A45573]/30 bg-white/55 px-4 py-2 text-sm font-medium text-[#8F4561] transition hover:bg-[#A45573]/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#A45573]"
-          >
-            Download annual CSV
-          </button>
-        )}
       </div>
 
       {calculation.error ? (
@@ -141,16 +131,6 @@ export default function ResultsSection({
                 label="Property-side shares"
                 value={formatCurrency(finalYear.propertyStocks)}
                 detail={`Offset balance ${formatCurrency(finalYear.offsetBalance)}`}
-              />
-              <SummaryCard
-                label="Stocks-only external cash"
-                value={CURRENCY.format(finalYear.stocksExternalCash)}
-                detail="Starting capital + monthly budget or contributions"
-              />
-              <SummaryCard
-                label="Property external cash"
-                value={formatCurrency(finalYear.propertyExternalCash)}
-                detail="Excludes rent as an external contribution"
               />
               <SummaryCard
                 label="Latest rental cash flow"
