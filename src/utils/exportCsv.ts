@@ -1,4 +1,4 @@
-import type { DashboardYear } from "../InvestmentComparison.types";
+import type { DashboardYear } from "../pages/InvestmentComparison/InvestmentComparison.types";
 
 export function exportAnnualCsv(rows: DashboardYear[]): void {
   const headers = [

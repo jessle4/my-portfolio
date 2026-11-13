@@ -1,6 +1,6 @@
-import type { DashboardYear } from "../InvestmentComparison.types";
-import type { FairComparisonResult } from "../calculations/fairComparison";
-import type { CustomComparisonResult } from "../calculations/customComparison";
+import type { CustomComparisonResult } from "../pages/InvestmentComparison/calculations/customComparison";
+import type { FairComparisonResult } from "../pages/InvestmentComparison/calculations/fairComparison";
+import type { DashboardYear } from "../pages/InvestmentComparison/InvestmentComparison.types";
 
 export function toFairDashboardRows(result: FairComparisonResult): DashboardYear[] {
   const propertyByYear = new Map(
